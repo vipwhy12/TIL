@@ -88,10 +88,81 @@ describe("정보의 생성과 실패", () => {
   // 생성할 수 없는 경우에 집중!
   describe("아래와 같은 경우 각 정보를 생성할 수 없다", () => {
     // 이 안에서 여러 정보를 생성하는 경우를 생각해볼 수 있습니다.
-    // 정보를 생성할 수 없는 에러 케이스들은 어떤 것이 있을까 생각하면, 데이터베이스에서 Schema를 강제 한다거나
+    // 정보를 생성할 수 없는 에러 케이스들은 어떤 것이 있을까 생각하면,
+    // 데이터베이스에서 Schema를 강제 한다거나
     // 타입, 꼴을 강제한다 거나 하는 것들로 이해해볼 수 있습니다.
   });
 });
+```
+
+```javascript
+describe("각 status는 아래와 같은 경우 다음 status로 넘어가지 못한다.", ()=>{
+    describe("다음가 같은 경우 '결제 요청'이 불가능하다.", ()=>{
+        test("인증 실패", ()=>{
+            const user = createUser("heonil10", "PW", "name", "addr");
+            const product = createProduct("productNo", "productName", 1000, 100, true, true);
+            expect(()=>requestPay(user, product, 1)).toThrow(AuthError);
+        });
+
+        test("재고 부족", ()=>{
+            const user = createUser("heonil1", "PW", "name", "addr");
+            const product = createProduct("productNo", "productName", 1000, 1, true, true);
+            expect(()=>requestPay(user, product, 10)).toThrow(ProductError);
+        })
+
+        test("구매 불가 상품", ()=>{
+            const user = createUser("heonil1", "PW", "name", "addr");
+            const product = createProduct("productNo", "productName", 1000, 10, false, true);
+            expect(()=>requestPay(user, product, 1)).toThrow(ProductError);
+        });
+    });
+
+    describe("다음과 같은 경우 '결제 승인'이 불가능하다.", ()=>{
+        test("인가 실패", ()=>{
+            const user = createUser("heonil1", "PW", "name", "addr");
+            const product = createProduct("productNo", "productName", 1000, 100, true, true);
+            const order = requestPay(user, product, 1);
+
+            const card = createCard("cardCompany", "cardNUm", true);
+            user._userID = "heonil10"; //
+            expect(()=>approvePay(user, order, card, Date.now())).toThrow(AuthEㄱror);
+        });
+        test("카드사 점검 시간", ()=>{
+            const user = createUser("heonil1", "PW", "name", "addr");
+            const product = createProduct("productNo", "productName", 1000, 100, true, true);
+            const order = requestPay(user, product, 1);
+            const card = createCard("cardCompany", "cardNUm", true);
+
+            expect(()=>approvePay(user, order, card, 5)).toThrow(CardError)
+        });
+
+        describe("카드사 처리 실패", ()=>{
+            test("카드가 유효하지 않은 경우 결제 승인 실패", ()=>{
+                const user = createUser("heonil1", "PW", "name", "addr");
+                const product = createProduct("productNo", "productName", 1000, 100, true, true);
+                const order = requestPay(user, product, 1);
+                const card = createCard("cardCompany", "cardNUm", false);
+
+                expect(()=>approvePay(user, order, card, Date.now())).toThrow(CardError)
+            })
+
+            test("카드의 금액이 부족한 경우 결제 승인 실패", ()=>{
+                const user = createUser("heonil1", "PW", "name", "addr");
+                const product = createProduct("productNo", "productName", 1000, 100, true, true);
+                const order = requestPay(user, product, 1);
+                const card = createCard("cardCompany", "cardNUm", true, 1);
+
+                expect(()=>approvePay(user, order, card, Date.now())).toThrow(CardError);
+            })
+    });
+
+	...
+	...
+	...
+	...
+});
+
+
 ```
 
 ## 참고한 글
